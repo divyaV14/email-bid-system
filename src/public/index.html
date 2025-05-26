@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Bid System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container { padding-top: 2rem; }
+        .card { margin-bottom: 1rem; }
+        #status { margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">Email Bid Management System</h1>
+        
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Authentication</h5>
+                <div id="authStatus">Not authenticated</div>
+                <button id="loginBtn" class="btn btn-primary mt-2">Login with Google</button>
+                <button id="logoutBtn" class="btn btn-secondary mt-2" style="display: none;">Logout</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Email Management</h5>
+                <button id="archiveBtn" class="btn btn-success" disabled>Start Email Archiving</button>
+                <button id="statusBtn" class="btn btn-info ms-2" disabled>Check Status</button>
+                <div id="status" class="alert" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const archiveBtn = document.getElementById('archiveBtn');
+        const statusBtn = document.getElementById('statusBtn');
+        const authStatus = document.getElementById('authStatus');
+        const statusDiv = document.getElementById('status');
+
+        loginBtn.addEventListener('click', () => {
+            window.location.href = '/auth/google';
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await fetch('/auth/logout');
+                updateAuthStatus(false);
+            } catch (error) {
+                showStatus('Error logging out', 'danger');
+            }
+        });
+
+        archiveBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/emails/archive', { method: 'POST' });
+                const data = await response.json();
+                showStatus(data.message, 'success');
+            } catch (error) {
+                showStatus('Error starting email archive', 'danger');
+            }
+        });
+
+        statusBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/emails/status');
+                const data = await response.json();
+                showStatus(`Archive status: ${data.status}`, 'info');
+            } catch (error) {
+                showStatus('Error checking status', 'danger');
+            }
+        });
+
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `alert alert-${type}`;
+            statusDiv.style.display = 'block';
+        }
+
+        function updateAuthStatus(isAuthenticated) {
+            if (isAuthenticated) {
+                authStatus.textContent = 'Authenticated';
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'inline-block';
+                archiveBtn.disabled = false;
+                statusBtn.disabled = false;
+            } else {
+                authStatus.textContent = 'Not authenticated';
+                loginBtn.style.display = 'inline-block';
+                logoutBtn.style.display = 'none';
+                archiveBtn.disabled = true;
+                statusBtn.disabled = true;
+            }
+        }
+
+        // Check initial auth status
+        fetch('/auth/status')
+            .then(response => response.json())
+            .then(data => updateAuthStatus(data.isAuthenticated))
+            .catch(() => updateAuthStatus(false));
+    </script>
+</body>
+</html> 
